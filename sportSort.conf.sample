@@ -1,0 +1,54 @@
+########################################
+######## CONFIG FILE FOR sportSort
+########################################
+
+# TODO add this to source within the script
+
+########################
+# UNIVERSAL SECTION
+########################
+
+# Set the source and destination directories
+
+src_dir="/home/max/DATA/testing/sportsorter/input"         # where files are to be found for moving and renaming
+dst_dir="/home/max/DATA/testing/sportsorter/crap"          # the toplevel directory of where you want renamed files to be placed
+man_dst_dir="/home/max/DATA/testing/sportsorter/manualfix" # directory where files should go that aren't able to handled correctly and require manual intervention
+log_file_dir="/home/${USER}/logs"                          # directory to save the logfiles
+
+########################
+# Can be ignored for now
+########################
+
+### TODO need to add handling for torrents since they will be seeding still
+
+src_dir_torrents="/home/max/DATA/testing/sportsorter/input" # where files are to be found for moving and renaming
+# Not yet used but planned to be used
+
+current_year="2023"                 # can this be grabbed from file or today date
+today=$(date '+%Y_%d_%m__%H_%M_%S') # current date
+
+# extra sport types to allow easy additions for users
+my_sport_types=("nba" "nfl" "NHL.RS" "nhl" "mlb" "epl" "Spanish.La.Liga" "Spanish La Liga" "la.liga" "La.Liga" "la liga" "Premier.League")
+
+# sport names to allow easy additions for users - could eventually add all types in sports DB
+my_sport_name_map=(["epl"]="English Premier League" ["Premier.League"]="English Premier League" ["Premier League"]="English Premier League" ["Spanish La Liga"]="Spanish La Liga" ["la.liga"]="Spanish La Liga" ["La.Liga"]="Spanish La Liga" ["la liga"]="Spanish La Liga" ["Spanish.La.Liga"]="Spanish La Liga" ["nba"]="NBA" ["nfl"]="NFL" ["nhl"]="NHL" ["NHL.RS"]="NHL" ["mlb"]="MLB")
+
+# release groups to strip name from files - not real, just examples
+release_groups=("gaMMa" "t00l" "rimjobSteve" "chair")
+
+# other stuff to strip from files - not real, just examples
+release_groups=("4kdv" "3dfp" "chair")
+
+myusername=max # your user name on this server, eg rimjobsteve
+appdir=/opt    # parent dir of your apps and app data
+
+# these are auto config, you probably don't need to edit
+
+logsdir=/home/"${myusername}"/logs # directory for logs
+
+# some colours
+
+BRED="$(tput setaf 9)"   # bright red
+YELLOW="$(tput setaf 3)" # yellow
+RESET="$(tput sgr0)"     # reset
+

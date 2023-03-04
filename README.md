@@ -160,6 +160,7 @@ If you would like to contribute to the development of sportSort it would be most
 - Submit an issue with examples of filenames that have gone wrong or that need handling. Provide an example of how something should look if possible.
 - Open a PR.
 - Submit a feature request.
+- I know bugger all about sports. What a season should be, when it starts. For now its all just hardcoded to "2022-2023" because that was the first thing that came up.
 - Chat on discord - you'll likely find me in Saltbox
 
 [![Discord](https://img.shields.io/discord/853755447970758686)](https://discord.gg/ugfKXpFND8)
