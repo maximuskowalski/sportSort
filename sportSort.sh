@@ -123,9 +123,6 @@ sort_and_move_files() {
     local sport_type="$1"
     local src_dir_pattern="*${sport_type}*"
 
-    # Extract the base file name without the path
-    base_file=$(basename "$file")
-
     echo "sorting_sport_type: $sport_type"
 
     # shellcheck disable=SC2154
@@ -133,6 +130,8 @@ sort_and_move_files() {
     mapfile -t files < <(find "$src_dir" -type f -iname "$src_dir_pattern*.mkv" -mmin +1)
 
     for file in "${files[@]}"; do
+        # Extract the base file name without the path
+        base_file=$(basename "$file")
         echo "filename: $base_file"
         # use basename to gather names only here
         echo "$base_file" >>"$log_file_dir"/sportSort_filename.log
