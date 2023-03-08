@@ -2,9 +2,15 @@
 ######## CONFIG FILE FOR sportSort
 ########################################
 
+#________ directories
+
 src_dir="/mnt/unionfs/downloads/nzbs/nzbget/completed/sports"            # where files are to be found for moving and renaming
 dst_dir="/mnt/unionfs/Media/sports"                                      # the top level directory where you want renamed files to be placed
 
 man_dst_dir="/mnt/unionfs/downloads/nzbs/nzbget/completed/sportsort_fix" # directory where files should go that aren't able to handled correctly and require manual intervention
 
 log_file_dir="/home/${USER}/logs"                                        # directory to save the logfiles
+
+#________ notifications
+
+webhook_url="discord://12345678901234567890/abcdefghijklmnopqrstuvwxyz"  # example only, format is"service://YOUR_WEBHOOK_URL"

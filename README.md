@@ -1,9 +1,8 @@
 # sportSort
 
-NOT READY FOR USE - DO NOT INSTALL
-CODE NEEDS TO BE TESTED FIRST
-CODE NEEDS CLEANUP TO REMOVE DEVSTUFF LIKE UNUSED FUNCTIONS
-CODE SHOULD HAVE SOME COMMENTS AND NOTES REMOVED
+The only sports this script currently works with are:
+"NBA", "NFL", "NHL", "MLB", "English Premier League" & "Spanish La Liga".
+Other sports can be added, please create an issue if you would like a new sport included.
 
 ## Description
 
@@ -81,17 +80,20 @@ nano sportSort.conf
 ######## CONFIG FILE FOR sportSort
 ########################################
 
-########################
-# Required Variables
-########################
+#________ directories
 
-# Set the source and destination directories
 src_dir="/mnt/unionfs/downloads/nzbs/nzbget/completed/sports"            # where files are to be found for moving and renaming
 dst_dir="/mnt/unionfs/Media/sports"                                      # the top level directory where you want renamed files to be placed
+
 man_dst_dir="/mnt/unionfs/downloads/nzbs/nzbget/completed/sportsort_fix" # directory where files should go that aren't able to handled correctly and require manual intervention
+
 log_file_dir="/home/${USER}/logs"                                        # directory to save the logfiles
 
-## ANYTHING AFTER THIS POINT YOU CAN IGNORE FOR NOW, even delete if you wish.
+#________ notifications
+
+webhook_url="discord://12345678901234567890/abcdefghijklmnopqrstuvwxyz"  # example only, format is"service://YOUR_WEBHOOK_URL"
+
+
 ```
 
 The "src_dir" is the directory where all your sports downloads end up, this should be the top level directory, sub folders will also be scraped for content. DO NOT use your completed torrents directory, as the files will be moved not copied and things like .nfo files and empty directories deleted.
@@ -141,6 +143,28 @@ sports
 The "man_dst_dir" is the directory where files should go that aren't able to handled correctly and require manual intervention and some sort of renaming.
 
 The "log_file_dir" is the directory you wish to save the logfiles into. There is a lot of extra logging at the moment while trying to figure out how to deal with each new file naming scheme so I would recommend checking on this if you aren't using a directory with some sort of automatic log rotation as it could potentially grow quite large in time.
+
+### Notifications
+
+Notifiacations can be sent whenever a file is processed that needs manual intervention. This could be because it has no date information in the file, or does not appear to have some other required information that I have not worked out how to rename a file without. The destination directory is set above in the "man_dst_dir"
+
+Set the webhook url to be used by apprise. You will need the apprise package installed on your system for this to function.
+
+```toml
+webhook_url="discord://12345678901234567890/abcdefghijklmnopqrstuvwxyz"
+```
+
+IF YOU DO NOT WANT NOTIFICATIONS OF THESE FILES LEAVE THIS VALUE AS IS.
+
+Apprise webhook information can be found [here](https://github.com/caronc/apprise#productivity-based-notifications).
+
+Discord notifications use the format:
+
+`https://discordapp.com/api/webhooks/{WebhookID}/{WebhookToken}`
+or
+`discord://{WebhookID}/{WebhookToken}/`
+or
+`discord://avatar@{WebhookID}/{WebhookToken}`
 
 ## Examples
 

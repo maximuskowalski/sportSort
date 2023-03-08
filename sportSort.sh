@@ -123,6 +123,9 @@ sort_and_move_files() {
     local sport_type="$1"
     local src_dir_pattern="*${sport_type}*"
 
+    # Extract the base file name without the path
+    base_file=$(basename "$file")
+
     echo "sorting_sport_type: $sport_type"
 
     # shellcheck disable=SC2154
@@ -130,8 +133,9 @@ sort_and_move_files() {
     mapfile -t files < <(find "$src_dir" -type f -iname "$src_dir_pattern*.mkv" -mmin +1)
 
     for file in "${files[@]}"; do
-        echo "filename: $file"
-        echo "$file" >>"$log_file_dir"/sportSort_filename.log
+        echo "filename: $base_file"
+        # use basename to gather names only here
+        echo "$base_file" >>"$log_file_dir"/sportSort_filename.log
 
         if [[ $file =~ S[0-9]{2}E[0-9]{2} ]]; then
             echo "episode_format send: $file" >>"$log_file_dir"/sportSort.log
@@ -195,6 +199,7 @@ episode_format() {
 
     # Call fix_date to fix the date string in the filename
     # should be no date on these but if it is there we should clean and keep
+    # now using this function to strip other invalid files, perhaps rename
     clean_base_file=$(fix_date "$clean_base_file")
 
     echo "episode fix_date clean_base_file name: $clean_base_file" >>"$log_file_dir"/sportSort.log
@@ -206,13 +211,14 @@ episode_format() {
 
     echo "episode final clean_base_file name: $clean_base_file" >>"$log_file_dir"/sportSort.log
 
-    # Move file to the manual intervention dir with new name
-    if [ -f "$man_dst_dir/${sport_name_map[$sport_type]}/2022-2023/$clean_base_file" ]; then
-        rm "$file"
+    if [[ "$clean_base_file" =~ [0-9]{4}-[0-9]{2}-[0-9]{2} && "$clean_base_file" =~ (v|V)(s|S) ]]; then
+        # check file name has valid date format YYYY-MM-DD and contains "vs"
+        file_mover "$file" "$clean_base_file" "${sport_name_map[$sport_type]}"
     else
-        mv -n "$file" "$man_dst_dir/${sport_name_map[$sport_type]}/2022-2023/$clean_base_file"
+        # otherwise, move file to the manual intervention dir with new name
+        manual_fix "$file" "$clean_base_file" "${sport_name_map[$sport_type]}"
     fi
-    echo "Moved $file to $man_dst_dir/${sport_name_map[$sport_type]}/2022-2023/$clean_base_file" >>"$log_file_dir"/sportSort.log
+
 }
 
 rename_nhl_threeletter_files() {
@@ -253,6 +259,7 @@ rename_nhl_threeletter_files() {
     new_file="NHL.$(basename "${new_base_file}" | grep -o '^NHL-[0-9-]\+' | sed 's/NHL-//').$(echo "${home_team}" | tr ' ' '.').vs.$(echo "${away_team}" | tr ' ' '.').mkv"
 
     # Rename and move file
+    # TODO use filemover functions.
     mv "${file}" "$dst_dir/${sport_name_map[$sport_type]}/2022-2023/${new_file}"
     echo "3 letter rename: ${file} was sent to ${sport_name_map[$sport_type]} as ${new_file}" >>"$log_file_dir"/sportSort.log
 
@@ -281,6 +288,7 @@ move_nhlrs_dirty_date_files() {
             -e 's/\.\././g')"
 
     # Move file to the destination dir with new name
+    # TODO use filemover functions.
     if [ -f "$dst_dir/${sport_name_map[$sport_type]}/2022-2023/$clean_base_file" ]; then
         rm "$file"
     else
@@ -288,8 +296,6 @@ move_nhlrs_dirty_date_files() {
     fi
     echo "Moved $file to $dst_dir/${sport_name_map[$sport_type]}/2022-2023/$clean_base_file" >>"$log_file_dir"/sportSort.log
 
-    # mv "$file" "$dst_dir/dirtydate/${fixed_base_file}"
-    # echo "dirty date files: ${file} was sent to DDR dir as ${fixed_base_file}" >> $log_file_dir/sportSort.log
 }
 
 es_la_liga_problemo_rename() {
@@ -348,24 +354,14 @@ es_la_liga_problemo_rename() {
     # Log the file name after the date fixing function has been applied.
     echo "laligaProblemo after date fixing function  name: $clean_base_file" >>"$log_file_dir"/sportSort.log
 
-    # # Move file to the destination dir with new name - we should convert this to use the file mover function
-    # if [ -f "$dst_dir/${sport_name_map[$sport_type]}/2022-2023/$clean_base_file" ]; then
-    #   rm "$file"
-    # else
-    #   mv -n "$file" "$dst_dir/${sport_name_map[$sport_type]}/2022-2023/$clean_base_file"
-    # fi
-    # echo "Moved $file to $dst_dir/${sport_name_map[$sport_type]}/2022-2023/$clean_base_file" >>"$log_file_dir"/sportSort.log
-
-    # Move file to the destination dir with new name
+    # move file to the destination dir with new name ( add check for vs? )
     if [[ "$clean_base_file" =~ [0-9]{4}-[0-9]{2}-[0-9]{2} ]]; then
-        # Checks if the file name already has a valid date format YYYY-MM-DD
+        # checks if file name has valid date format YYYY-MM-DD
         file_mover "$file" "$clean_base_file" "${sport_name_map[$sport_type]}"
     else
-        # Move file to the manual intervention dir with new name
+        # move file to the manual intervention dir with new name
         manual_fix "$file" "$clean_base_file" "${sport_name_map[$sport_type]}"
     fi
-
-    # echo "Moved $file to ${sport_name_map[$sport_type]}/2022-2023/$clean_base_file" >>"$log_file_dir"/sportSort.log
 
 }
 
@@ -397,9 +393,6 @@ move_and_other_files() {
     # Remove unwanted strings from the file name
     clean_base_file="$(remove_strings "$new_base_file")"
     echo "move_and_other_files remove_strings name: $clean_base_file" >>"$log_file_dir"/sportSort.log
-
-    # Call fix_date to fix the date string in the filename
-    # clean_base_file=$(fix_date "$clean_base_file")
 
     # Check if the file name matches the pattern for dates as "MM-DD-YYYY".
     # If it does, send it to the "usa_dateriser" function to fix the date format.
@@ -445,8 +438,11 @@ manual_fix() {
         rm "$file"
     else
         mv -n "$file" "$man_dst_dir/${sporttype}/2022-2023/$clean_name"
+        msg="Moved $file to $man_dst_dir/$sporttype/2022-2023/$clean_name"
+        echo "$msg" >>"$log_file_dir"/sportSort.log
+        echo "send to notification: $msg" >>"$log_file_dir"/sportSort.log
+        send_notification "$msg"
     fi
-    echo "Moved $file to ""$man_dst_dir"/"${sporttype}"/2022-2023/"$clean_name""" >>"$log_file_dir"/sportSort.log
 
 }
 
@@ -689,6 +685,22 @@ fix_consecutive_year() {
     echo "$new_filename"
 }
 
+#________ notifications
+
+send_notification() {
+    local msg="$1"
+    # check value of "${webhook_url}", if it is "discord://12345678901234567890/abcdefghijklmnopqrstuvwxyz" then the notification should not be sent and this function exited.
+    if [ "${webhook_url}" = "discord://12345678901234567890/abcdefghijklmnopqrstuvwxyz" ]; then
+        echo "Notification not sent as webhook URL is invalid: ${webhook_url}" >>"$log_file_dir"/sportSort.log
+        return 0
+    else
+        echo "Notification sent: $msg" >>"$log_file_dir"/sportSort.log
+        apprise "${webhook_url}" --title "sportSort" --body "${msg}"
+        return $?
+    fi
+
+}
+
 #________ clean up after each run
 
 cleanup() {
@@ -696,7 +708,7 @@ cleanup() {
     # Remove any .nfo files within the source directory
     find "$src_dir" -name "*.nfo" -delete
     # Remove any empty directories within the source directory
-    find "$src_dir" -type d -empty -delete
+    find "$src_dir" -mindepth 1 -type d -empty -delete
 }
 
 #________ dev only function
