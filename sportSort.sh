@@ -24,7 +24,7 @@ IFS=$'\n\t'
 
 #________ VARS ( NOW IN CONFIG FILE )
 
-# shellcheck source=/dev/null
+# shellcheck source-path=SCRIPTDIR
 source "$(dirname "$0")/sportSort.conf"
 
 #________ PREDEFINED DICTIONARIES AND ARRAYS
@@ -166,7 +166,7 @@ sort_and_move_files() {
 
 episode_format() {
 
-    # lets strip the stuff we dont want and then pass to a manual intervention directory
+    # lets strip the stuff we don't want and then pass to a manual intervention directory
     # we could do this for all files that don't pass some test as well and this lets the
     # script be more usable immediately while trying to fix issues.
     # if we outsource the actual move function to it's own thing it could be included in that
@@ -235,10 +235,11 @@ rename_nhl_threeletter_files() {
     echo "nhl_threeletter: ${file} was renamed with remove strings as ${new_base_file}" >>"$log_file_dir"/sportSort.log
 
     # Extract team codes from the file name
-    mapfile -t teams < <(basename ${new_base_file} | grep -o '^NHL-[0-9-]\+_\([A-Z]\{3\}\)@[A-Z]\{3\}' | sed -E 's/.*_([A-Z]{3})@([A-Z]{3}).*/\1\n\2/')
+    mapfile -t teams < <(basename "${new_base_file}" | grep -o '^NHL-[0-9-]\+_\([A-Z]\{3\}\)@[A-Z]\{3\}' | sed -E 's/.*_([A-Z]{3})@([A-Z]{3}).*/\1\n\2/')
 
     # Log the teams array
-    echo "nhl_threeletter: teams ${teams[0]} ${teams[1]}" >>"$log_file_dir"/sportSort.log
+    echo "nhl_threeletter: teams array: ${teams[*]}" >>"$log_file_dir"/sportSort.log
+
     if [ ${#teams[@]} -ne 2 ]; then
         echo "nhl_threeletter: Error: bad number of teams in file name" >>"$log_file_dir"/sportSort.log
         mv "$file" "$man_dst_dir/${sport_name_map[$sport_type]}/2022-2023/$new_base_file"
@@ -252,15 +253,26 @@ rename_nhl_threeletter_files() {
 
     # Log the teams array
     echo "${teams[@]}" >>"$log_file_dir"/sportSort.log
-    echo "team codes: ${teams[@]}" >>"$log_file_dir"/sportSort.log
+    echo "team codes: ${teams[*]}" >>"$log_file_dir"/sportSort.log
 
     # Create new file name
-    new_file="NHL.$(basename "${new_base_file}" | grep -o '^NHL-[0-9-]\+' | sed 's/NHL-//').$(echo "${home_team}" | tr ' ' '.').vs.$(echo "${away_team}" | tr ' ' '.').mkv"
+    clean_base_file="NHL.$(basename "${new_base_file}" | grep -o '^NHL-[0-9-]\+' | sed 's/NHL-//').$(echo "${home_team}" | tr ' ' '.').vs.$(echo "${away_team}" | tr ' ' '.').mkv"
 
     # Rename and move file
     # TODO use filemover functions.
-    mv "${file}" "$dst_dir/${sport_name_map[$sport_type]}/2022-2023/${new_file}"
-    echo "3 letter rename: ${file} was sent to ${sport_name_map[$sport_type]} as ${new_file}" >>"$log_file_dir"/sportSort.log
+
+    echo "rename_nhl_threeletter_files clean_base_file name: $clean_base_file" >>"$log_file_dir"/sportSort.log
+
+    if [[ "$clean_base_file" =~ [0-9]{4}-[0-9]{2}-[0-9]{2} && "$clean_base_file" =~ (v|V)(s|S) ]]; then
+        # check file name has valid date format YYYY-MM-DD and contains "vs"
+        file_mover "$file" "$clean_base_file" "${sport_name_map[$sport_type]}"
+    else
+        # otherwise, move file to the manual intervention dir with new name
+        manual_fix "$file" "$clean_base_file" "${sport_name_map[$sport_type]}"
+    fi
+
+    # mv "${file}" "$dst_dir/${sport_name_map[$sport_type]}/2022-2023/${new_file}"
+    # echo "3 letter rename: ${file} was sent to ${sport_name_map[$sport_type]} as ${new_file}" >>"$log_file_dir"/sportSort.log
 
 }
 
@@ -288,12 +300,23 @@ move_nhlrs_dirty_date_files() {
 
     # Move file to the destination dir with new name
     # TODO use filemover functions.
-    if [ -f "$dst_dir/${sport_name_map[$sport_type]}/2022-2023/$clean_base_file" ]; then
-        rm "$file"
+
+    echo "dirty_date_files clean_base_file name: $clean_base_file" >>"$log_file_dir"/sportSort.log
+
+    if [[ "$clean_base_file" =~ [0-9]{4}-[0-9]{2}-[0-9]{2} && "$clean_base_file" =~ (v|V)(s|S) ]]; then
+        # check file name has valid date format YYYY-MM-DD and contains "vs"
+        file_mover "$file" "$clean_base_file" "${sport_name_map[$sport_type]}"
     else
-        mv -n "$file" "$dst_dir/${sport_name_map[$sport_type]}/2022-2023/$clean_base_file"
+        # otherwise, move file to the manual intervention dir with new name
+        manual_fix "$file" "$clean_base_file" "${sport_name_map[$sport_type]}"
     fi
-    echo "Moved $file to $dst_dir/${sport_name_map[$sport_type]}/2022-2023/$clean_base_file" >>"$log_file_dir"/sportSort.log
+
+    # if [ -f "$dst_dir/${sport_name_map[$sport_type]}/2022-2023/$clean_base_file" ]; then
+    #     rm "$file"
+    # else
+    #     mv -n "$file" "$dst_dir/${sport_name_map[$sport_type]}/2022-2023/$clean_base_file"
+    # fi
+    # echo "Moved $file to $dst_dir/${sport_name_map[$sport_type]}/2022-2023/$clean_base_file" >>"$log_file_dir"/sportSort.log
 
 }
 
@@ -417,7 +440,20 @@ move_and_other_files() {
     echo "move_and_other_files fix date name: $clean_base_file" >>"$log_file_dir"/sportSort.log
 
     # Call the file_mover function to move the file to the desired directory with the cleaned up name
-    file_mover "$file" "$clean_base_file" "${sport_name_map[$sport_type]}"
+    # file_mover "$file" "$clean_base_file" "${sport_name_map[$sport_type]}"
+
+    # Log the file name after the date fixing function has been applied.
+    echo "move_and_other_file clean name: $clean_base_file" >>"$log_file_dir"/sportSort.log
+
+    # move file to the destination dir with new name ( add check for vs? )
+    if [[ "$clean_base_file" =~ [0-9]{4}-[0-9]{2}-[0-9]{2} ]]; then
+        # checks if file name has valid date format YYYY-MM-DD
+        file_mover "$file" "$clean_base_file" "${sport_name_map[$sport_type]}"
+    else
+        # move file to the manual intervention dir with new name
+        manual_fix "$file" "$clean_base_file" "${sport_name_map[$sport_type]}"
+    fi
+
 }
 
 #________ mover functions
@@ -432,8 +468,8 @@ manual_fix() {
     local sporttype="$3"
     echo "sporttype -  sporttype: $sporttype" >>"$log_file_dir"/sportSort.log
 
-    # Move file to the destination dir with new name
-    if [ -f "$man_dst_dir/${sporttype}/2022-2023/$clean_name" ]; then
+    # Move file to the destination dir with new name, delete if it already exists
+    if [ -n "$(find "$man_dst_dir/${sporttype}/2022-2023" -maxdepth 1 -type f -iname "$(echo "$clean_name" | tr '[:upper:]' '[:lower:]')")" ]; then
         rm "$file"
     else
         mv -n "$file" "$man_dst_dir/${sporttype}/2022-2023/$clean_name"
@@ -455,8 +491,8 @@ file_mover() {
     local sporttype="$3"
     echo "sporttype -  sporttype: $sporttype" >>"$log_file_dir"/sportSort.log
 
-    # Move file to the destination dir with new name
-    if [ -f "$dst_dir/${sporttype}/2022-2023/$clean_name" ]; then
+    # Move file to the destination dir with new name, delete if it already exists
+    if [ -n "$(find "$dst_dir/${sporttype}/2022-2023" -maxdepth 1 -type f -iname "$(echo "$clean_name" | tr '[:upper:]' '[:lower:]')")" ]; then
         rm "$file"
     else
         mv -n "$file" "$dst_dir/${sporttype}/2022-2023/$clean_name"
@@ -634,7 +670,7 @@ usa_dateriser() {
     local filename="$1"
     local sport_type_regex="(NHL|ENGLISH\.PREMIER\.LEAGUE|SPANISH\.LA\.LIGA|NBA|NFL|MLB)"
     local sport_type=""
-    local date_regex='([0-9]{4}).([0-9]{1,2}).([0-9]{1,2})'
+    # local date_regex='([0-9]{4}).([0-9]{1,2}).([0-9]{1,2})'
     local date_str=""
     local match_info=""
 
